@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F1EB">
+<title>CardForge — 共通テスト暗記カード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#F2F1EB;        /* 和紙白 */
+ --card:#FFFFFF;
+ --ink:#1B2233;       /* 藍がかった墨 */
+ --line:#2B3550;
+ --ai:#2C4E80;        /* 藍（正・進行） */
+ --red:#C7362F;       /* 赤（誤・削除・上限） */
+ --hl:#F5E663;        /* 蛍光マーカー */
+ --muted:#7B8093;
+ --rule:#DDDCD2;
+ --shadow:0 2px 0 rgba(27,34,51,.12);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px;line-height:1.6;touch-action:manipulation;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+h1,h2,h3,.disp{font-family:"Zen Kaku Gothic New","Hiragino Sans",sans-serif;font-weight:900}
+header.app{padding:calc(10px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:baseline;gap:8px;border-bottom:1.5px solid var(--line);background:var(--bg);position:sticky;top:0;z-index:5}
+header.app h1{font-size:19px;margin:0;letter-spacing:.02em}
+header.app h1 .mk{background:linear-gradient(transparent 58%,var(--hl) 58%)}
+header.app .sub{font-size:11px;color:var(--muted)}
+main{max-width:560px;margin:0 auto;padding:14px 14px 24px}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.section-title{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.12em;margin:4px 0 8px}
+.btn{display:block;width:100%;padding:13px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-size:16px;font-weight:800;text-align:center;box-shadow:var(--shadow);cursor:pointer;font-family:inherit}
+.btn:active{transform:translateY(2px);box-shadow:none}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.ai{background:var(--ai);border-color:var(--ai);color:#fff}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.small{width:auto;display:inline-block;padding:8px 14px;font-size:14px;box-shadow:none}
+.btn:disabled{opacity:.4;pointer-events:none}
+.row{display:flex;gap:10px}
+.row>.btn{flex:1}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:8px 14px;border:1.5px solid var(--line);border-radius:999px;background:var(--card);font-size:14px;font-weight:800;color:var(--muted);cursor:pointer;font-family:inherit}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+input[type=text],input[type=url],textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);font-size:16px;color:var(--ink);font-family:inherit}
+textarea{resize:vertical;min-height:74px;line-height:1.55}
+label.f{display:block;font-size:12px;font-weight:800;color:var(--muted);margin:10px 0 4px}
+.muted{color:var(--muted);font-size:13px}
+.badge{display:inline-block;padding:1px 8px;border:1.2px solid var(--line);border-radius:6px;font-size:11px;font-weight:800}
+.badge.dup{color:var(--red);border-color:var(--red)}
+.subj{display:inline-block;min-width:22px;text-align:center;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:900;color:#fff}
+.subj.info{background:var(--ai)} .subj.civics{background:#7A5A2E} .subj.chem{background:#2E6B4E}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1.5px solid var(--line);display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;padding:13px 0 11px;background:none;border:none;font-size:13px;font-weight:900;color:var(--muted);position:relative;font-family:inherit;cursor:pointer}
+nav.tabs button.on{color:var(--ink)}
+nav.tabs button.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;background:var(--ai)}
+nav.tabs .cnt{position:absolute;top:6px;right:12%;background:var(--red);color:#fff;font-size:10px;border-radius:999px;padding:1px 5px;min-width:17px}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.thumbwrap{position:relative}
+.thumb{width:64px;height:64px;border:1.5px solid var(--line);border-radius:8px;object-fit:cover;display:block}
+.thumbwrap .x{position:absolute;top:-8px;right:-8px;width:23px;height:23px;border-radius:999px;background:var(--ink);color:#fff;border:none;font-size:12px;font-weight:800;line-height:1;cursor:pointer}
+/* 単語カード（リング穴が署名要素） */
+.flip{perspective:1200px;height:330px;margin-bottom:12px}
+.flip-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .28s}
+@media (prefers-reduced-motion: reduce){.flip-inner{transition:none}}
+.flip.on .flip-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1.5px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column}
+.face::after{content:"";position:absolute;top:12px;left:14px;width:16px;height:16px;border-radius:50%;background:var(--bg);border:1.5px solid var(--line)}
+.face.back{transform:rotateY(180deg)}
+.face .term{font-size:26px;font-weight:900;margin:auto 0;text-align:center;font-family:"Zen Kaku Gothic New",sans-serif;line-height:1.4}
+.face .term .mk{background:linear-gradient(transparent 62%,var(--hl) 62%);padding:0 2px}
+.face .def{font-size:16px;overflow-y:auto;margin:auto 0;line-height:1.75;-webkit-overflow-scrolling:touch}
+.face .meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);padding-left:26px}
+.face .hint{text-align:center;font-size:12px;color:var(--muted)}
+.item{padding:11px 2px;border-bottom:1px solid var(--rule);display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.item:last-child{border-bottom:none}
+.item .t{font-weight:800}
+.item .d{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.grp{font-size:13px;font-weight:900;color:var(--muted);margin:14px 2px 4px;letter-spacing:.04em}
+.prow{border-bottom:1px solid var(--rule);padding:10px 0}
+.prow:last-child{border:none}
+.prow .top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.prow input[type=checkbox]{width:21px;height:21px;accent-color:var(--ai);flex-shrink:0}
+.prow input[type=text]{font-weight:800}
+.prow textarea{font-size:16px;margin-top:6px;min-height:56px}
+.modal{position:fixed;inset:0;background:rgba(27,34,51,.45);z-index:20;display:flex;align-items:flex-end}
+.modal .panel{background:var(--bg);width:100%;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:88%;text-align:center}
+#toast.on{opacity:1}
+.tip{background:#FBF6D9;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.tip button{margin-left:auto;background:none;border:none;font-weight:800;font-size:16px;cursor:pointer;color:var(--ink)}
+.stat{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.stat:last-child{border:none}
+.spin{display:inline-block;width:15px;height:15px;border:2.5px solid #fff;border-top-color:transparent;border-radius:50%;animation:sp 1s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.danger{color:var(--red)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:2.5px solid var(--ai);outline-offset:2px}
+</style>
+</head>
+<body>
+<header class="app"><h1>Card<span class="mk">Forge</span></h1><span class="sub">共通テスト暗記カード v0.1</span></header>
+<main id="view"></main>
+<nav class="tabs" id="tabs"></nav>
+<div id="toast" role="status"></div>
+<script>
+'use strict';
+/* CardForge v0.1 — 自分専用・共通テスト暗記カード
+   設計原則:
+   - 画像は「どの用語を学ぶか」の特定にのみ使用（解説はAIの知識から生成。Worker側で強制）
+   - 画像はサーバーに保存されない（Worker参照）
+   - 復習は原価ゼロ。生成のみが原価 → 生成枚数カウンタを常時記録（将来の課金軸）
+   - 日付は全て端末ローカル基準（UTC混在バグの再発防止）
+*/
+const LS_KEY='card-forge:v1';
+const SUBJECTS=[
+ {id:'info',name:'情報Ⅰ'},
+ {id:'civics',name:'公共・政治経済'},
+ {id:'chem',name:'化学基礎'}
+];
+const SUBJ=Object.fromEntries(SUBJECTS.map(function(s){return [s.id,s.name];}));
+const SHORT={info:'情',civics:'公',chem:'化'};
+const INTERVALS={1:1,2:2,3:4,4:8,5:16};
+const DAILY_CAP=30, MAX_BATCH=5;
+
+/* ---------- utils ---------- */
+function $(q,el){return (el||document).querySelector(q);}
+function $$(q,el){return Array.prototype.slice.call((el||document).querySelectorAll(q));}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+function uid(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function norm(s){return String(s||'').normalize('NFKC').trim().toLowerCase();}
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayStr(){return fmtDate(new Date());}
+function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return fmtDate(d);}
+let toastTimer=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('on');},2800);}
+async function copyText(txt){
+ try{await navigator.clipboard.writeText(txt);toast('コピーしました');}
+ catch(e){
+  const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('コピーしました');}catch(_){toast('コピーに失敗しました');}
+  ta.remove();
+ }
+}
+
+/* ---------- store ---------- */
+function defaults(){return{version:1,settings:{workerUrl:'',token:''},cards:[],gen:{date:todayStr(),count:0,total:0},lastSubject:'info',lastBook:{},tipDismissed:false};}
+function load(){
+ try{
+  const r=localStorage.getItem(LS_KEY);
+  if(!r)return defaults();
+  const d=JSON.parse(r);
+  const base=defaults();
+  return Object.assign({},base,d,{
+   settings:Object.assign({},base.settings,d.settings||{}),
+   gen:Object.assign({},base.gen,d.gen||{}),
+   lastBook:d.lastBook||{}
+  });
+ }catch(e){return defaults();}
+}
+let store=load();
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(store));}catch(e){toast('保存失敗：容量超過の可能性。バックアップを取ってください');}}
+function rollGen(){const t=todayStr();if(store.gen.date!==t){store.gen.date=t;store.gen.count=0;save();}}
+function dueCards(subj){const t=todayStr();return store.cards.filter(function(c){return c.nextReview<=t&&(!subj||c.subject===subj);});}
+
+/* ---------- ui state ---------- */
+let ui={tab:'gen',subject:store.lastSubject||'info',book:'',page:'',files:[],busy:false,preview:null,session:null,filter:'all',search:'',edit:null};
+ui.book=store.lastBook[ui.subject]||'';
+
+/* ---------- render ---------- */
+function setTab(t){ui.tab=t;ui.edit=null;render();window.scrollTo(0,0);}
+function render(){
+ renderTabs();
+ const v=$('#view');
+ let html='';
+ if(ui.tab==='gen')html=ui.preview?viewPreview():viewGen();
+ else if(ui.tab==='rev')html=viewRev();
+ else if(ui.tab==='cards')html=viewCards();
+ else html=viewSet();
+ v.innerHTML=html+modalHTML();
+ bind();
+}
+function renderTabs(){
+ const due=dueCards().length;
+ const defs=[['gen','生成'],['rev','復習'],['cards','カード'],['set','設定']];
+ $('#tabs').innerHTML=defs.map(function(d){
+  const id=d[0],label=d[1];
+  const cnt=(id==='rev'&&due)?'<span class="cnt">'+due+'</span>':'';
+  return '<button data-tab="'+id+'" class="'+(ui.tab===id?'on':'')+'">'+label+cnt+'</button>';
+ }).join('');
+ $$('#tabs button').forEach(function(b){b.onclick=function(){setTab(b.dataset.tab);};});
+}
+function iosTip(){
+ const ua=navigator.userAgent;
+ const ios=/iPhone|iPad|iPod/.test(ua);
+ let standalone=false;
+ try{standalone=(window.navigator.standalone===true)||window.matchMedia('(display-mode: standalone)').matches;}catch(e){}
+ if(!ios||standalone||store.tipDismissed)return '';
+ return '<div class="tip"><span>共有 → 「ホーム画面に追加」で全画面アプリとして使えます</span><button id="tip-x" aria-label="閉じる">×</button></div>';
+}
+
+/* ---------- 生成タブ ---------- */
+function viewGen(){
+ rollGen();
+ const noUrl=!store.settings.workerUrl;
+ const cnt=store.cards.filter(function(c){return c.subject===ui.subject;}).length;
+ const thumbs=ui.files.map(function(f,i){
+  return '<div class="thumbwrap"><img class="thumb" src="'+f.url+'" alt=""><button class="x" data-rm="'+i+'" aria-label="削除">×</button></div>';
+ }).join('');
+ const runLabel=ui.busy?'<span class="spin"></span>抽出中…（30秒前後）':'用語を抽出する（'+ui.files.length+'枚）';
+ return iosTip()
+ +(noUrl?'<div class="card"><b>初期設定が必要です。</b><div class="muted" style="margin:6px 0 10px">設定タブでWorker URLと合言葉を保存してください。</div><button class="btn small" id="go-set">設定を開く</button></div>':'')
+ +'<div class="section-title">科目</div>'
+ +'<div class="chips">'+SUBJECTS.map(function(s){return '<button class="chip '+(ui.subject===s.id?'on':'')+'" data-subj="'+s.id+'">'+s.name+'</button>';}).join('')+'</div>'
+ +'<div class="card">'
+ +'<label class="f">参考書名（任意・出典として保存）</label>'
+ +'<input type="text" id="g-book" value="'+esc(ui.book)+'" placeholder="例：情報Ⅰ 標準問題集">'
+ +'<label class="f">ページ（任意）</label>'
+ +'<input type="text" id="g-page" value="'+esc(ui.page)+'" placeholder="例：p.42-43">'
+ +'<label class="f">参考書・ノートの画像（最大'+MAX_BATCH+'枚 / 動画・PDF不可）</label>'
+ +'<input type="file" id="g-file" accept="image/*" multiple style="display:none">'
+ +'<button class="btn" id="g-pick">画像を選ぶ</button>'
+ +'<div class="thumbs" id="g-thumbs">'+thumbs+'</div>'
+ +'<div style="height:12px"></div>'
+ +'<button class="btn primary" id="g-run" '+((ui.busy||ui.files.length===0||noUrl)?'disabled':'')+'>'+runLabel+'</button>'
+ +'<div class="muted" style="margin-top:10px">本日 '+store.gen.count+'/'+DAILY_CAP+'枚 ・ 累計 '+store.gen.total+'枚 ・ '+esc(SUBJ[ui.subject])+'のカード '+cnt+'枚</div>'
+ +'<div class="muted" style="margin-top:4px">画像はカード生成後すぐ破棄され、サーバーに保存されません。</div>'
+ +'</div>';
+}
+function viewPreview(){
+ const p=ui.preview;
+ const selCount=p.items.filter(function(i){return i.sel;}).length;
+ const rows=p.items.map(function(it,i){
+  return '<div class="prow">'
+  +'<div class="top">'
+  +'<input type="checkbox" data-sel="'+i+'" '+(it.sel?'checked':'')+'>'
+  +'<input type="text" data-term="'+i+'" value="'+esc(it.term)+'">'
+  +(it.dup?'<span class="badge dup">重複</span>':'')
+  +'</div>'
+  +'<textarea data-def="'+i+'">'+esc(it.definition)+'</textarea>'
+  +'</div>';
+ }).join('');
+ return '<div class="section-title">抽出結果 — '+esc(SUBJ[p.subject])+' '+p.items.length+'枚</div>'
+ +'<div class="card">'
+ +'<div class="muted" style="margin-bottom:8px">誤りはここで直してから保存。間違ったカードは無いカードより悪い。</div>'
+ +rows
+ +'</div>'
+ +'<div class="row">'
+ +'<button class="btn" id="p-discard">破棄</button>'
+ +'<button class="btn primary" id="p-save">保存する（<span id="p-count">'+selCount+'</span>枚）</button>'
+ +'</div>';
+}
+async function onFiles(e){
+ const files=Array.prototype.slice.call(e.target.files);
+ e.target.value='';
+ rollGen();
+ for(const f of files){
+  if(!f.type||f.type.indexOf('image/')!==0){toast('画像のみ対応です（動画・PDFはエラー）');continue;}
+  if(ui.files.length>=MAX_BATCH){toast('一度に送れるのは'+MAX_BATCH+'枚までです');break;}
+  if(store.gen.count+ui.files.length+1>DAILY_CAP){toast('本日の生成上限（'+DAILY_CAP+'枚）に達しました');break;}
+  ui.files.push({file:f,url:URL.createObjectURL(f)});
+ }
+ render();
+}
+function resizeImage(file,maxEdge,quality){
+ return new Promise(function(resolve,reject){
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=function(){
+   try{
+    const scale=Math.min(1,maxEdge/Math.max(img.width,img.height));
+    const w=Math.max(1,Math.round(img.width*scale));
+    const h=Math.max(1,Math.round(img.height*scale));
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    cv.getContext('2d').drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    resolve(cv.toDataURL('image/jpeg',quality));
+   }catch(err){URL.revokeObjectURL(url);reject(err);}
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('画像を読み込めませんでした'));};
+  img.src=url;
+ });
+}
+async function generate(){
+ if(ui.busy)return;
+ const s=store.settings;
+ if(!s.workerUrl){toast('設定タブでWorker URLを保存してください');return;}
+ if(ui.files.length===0){toast('画像を選択してください');return;}
+ rollGen();
+ if(store.gen.count+ui.files.length>DAILY_CAP){toast('本日の残り枚数（'+(DAILY_CAP-store.gen.count)+'枚）を超えています');return;}
+ ui.busy=true;render();
+ try{
+  const images=[];
+  for(const f of ui.files)images.push(await resizeImage(f.file,1536,0.72));
+  const ctrl=new AbortController();
+  const tm=setTimeout(function(){ctrl.abort();},120000);
+  const res=await fetch(s.workerUrl,{
+   method:'POST',
+   headers:{'Content-Type':'application/json','X-Access-Token':s.token||''},
+   body:JSON.stringify({subject:ui.subject,images:images}),
+   signal:ctrl.signal
+  });
+  clearTimeout(tm);
+  let data={};
+  try{data=await res.json();}catch(_){}
+  if(!res.ok)throw new Error(data.error||('サーバーエラー HTTP '+res.status));
+  const raw=Array.isArray(data.cards)?data.cards:[];
+  const cards=raw.map(function(c){return{term:String((c&&c.term)||'').trim(),definition:String((c&&c.definition)||'').trim(),tag:String((c&&c.tag)||'').trim()};}).filter(function(c){return c.term&&c.definition;});
+  if(cards.length===0)throw new Error('用語を抽出できませんでした。画像の向き・鮮明さを確認してください');
+  store.gen.count+=ui.files.length;store.gen.total+=ui.files.length;
+  store.lastSubject=ui.subject;store.lastBook[ui.subject]=ui.book.trim();save();
+  const seen=new Set();
+  const existing=new Set(store.cards.filter(function(c){return c.subject===ui.subject;}).map(function(c){return norm(c.term);}));
+  const items=[];
+  for(const c of cards){
+   const k=norm(c.term);
+   if(seen.has(k))continue;
+   seen.add(k);
+   const dup=existing.has(k);
+   items.push({term:c.term,definition:c.definition,tag:c.tag,dup:dup,sel:!dup});
+  }
+  ui.files.forEach(function(f){URL.revokeObjectURL(f.url);});
+  ui.files=[];
+  ui.preview={subject:ui.subject,book:ui.book.trim(),page:ui.page.trim(),items:items};
+ }catch(err){
+  toast(err.name==='AbortError'?'タイムアウトしました。枚数を減らして再試行してください':('エラー：'+err.message));
+ }
+ ui.busy=false;render();
+}
+function savePreview(){
+ const p=ui.preview;if(!p)return;
+ const t=todayStr();let n=0;
+ for(const it of p.items){
+  if(!it.sel)continue;
+  const term=it.term.trim(),def=it.definition.trim();
+  if(!term||!def)continue;
+  store.cards.push({id:uid(),subject:p.subject,term:term,definition:def,tag:it.tag||'',source:{book:p.book,page:p.page},box:1,nextReview:t,createdAt:new Date().toISOString(),history:{ok:0,ng:0}});
+  n++;
+ }
+ save();ui.preview=null;ui.page='';
+ toast(n+'枚保存しました（今日から復習に出ます）');
+ render();
+}
+
+/* ---------- 復習タブ ---------- */
+function viewRev(){
+ if(ui.session)return viewSession();
+ const t=todayStr();
+ const rows=SUBJECTS.map(function(s){
+  const d=dueCards(s.id).length;
+  const all=store.cards.filter(function(c){return c.subject===s.id;}).length;
+  const right=d>0?'<button class="btn small ai" data-start="'+s.id+'">復習 '+d+'</button>':'<span class="muted">0</span>';
+  return '<div class="stat"><span>'+s.name+'<span class="muted">（全'+all+'枚）</span></span><span>'+right+'</span></div>';
+ }).join('');
+ const total=dueCards().length;
+ return '<div class="section-title">今日の復習（'+t+'）</div>'
+ +'<div class="card">'+rows+'</div>'
+ +(total>0
+   ?'<button class="btn primary" id="start-all">すべて復習する（'+total+'枚）</button>'
+   :'<div class="card muted">今日の復習はありません。生成タブでカードを追加できます。</div>');
+}
+function startSession(subj){
+ const q=dueCards(subj).slice().sort(function(a,b){
+  if(a.box!==b.box)return a.box-b.box;
+  if(a.nextReview!==b.nextReview)return a.nextReview<b.nextReview?-1:1;
+  return a.createdAt<b.createdAt?-1:1;
+ });
+ if(q.length===0){toast('復習対象がありません');return;}
+ ui.session={queue:q,i:0,graded:{},ok:0,ng:0,flipped:false};
+ render();
+}
+function viewSession(){
+ const s=ui.session;
+ if(s.i>=s.queue.length){
+  return '<div class="card" style="text-align:center">'
+  +'<h2 style="margin:6px 0 14px">復習完了</h2>'
+  +'<div style="font-size:18px;margin-bottom:16px">○ わかる <b>'+s.ok+'</b>　／　✕ わからない <b class="danger">'+s.ng+'</b></div>'
+  +'<button class="btn primary" id="s-done">終了する</button></div>';
+ }
+ const c=s.queue[s.i];
+ const src=[(c.source&&c.source.book)||'',(c.source&&c.source.page)||''].filter(Boolean).join('　');
+ const front='<div class="face">'
+ +'<div class="meta"><span class="subj '+c.subject+'">'+(SHORT[c.subject]||'')+'</span><span class="badge">箱'+c.box+'</span></div>'
+ +'<div class="term"><span class="mk">'+esc(c.term)+'</span></div>'
+ +'<div class="hint">タップして答えを見る</div>'
+ +'</div>';
+ const back='<div class="face back">'
+ +'<div class="meta"><span>'+esc(c.term)+'</span>'+(src?'<span>'+esc(src)+'</span>':'')+'</div>'
+ +'<div class="def">'+esc(c.definition)+'</div>'
+ +'<div class="hint">'+esc(c.tag||'')+'</div>'
+ +'</div>';
+ const controls=s.flipped
+  ?'<div class="row"><button class="btn red" id="s-ng">✕ わからない</button><button class="btn ai" id="s-ok">○ わかる</button></div>'
+  :'<button class="btn" id="s-flip">めくる</button>';
+ return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+ +'<span class="muted">'+(s.i+1)+' / '+s.queue.length+'</span>'
+ +'<button class="btn small" id="s-quit">中断</button></div>'
+ +'<div class="flip '+(s.flipped?'on':'')+'" id="s-card"><div class="flip-inner">'+front+back+'</div></div>'
+ +controls;
+}
+function grade(ok){
+ const s=ui.session;
+ const c=s.queue[s.i];
+ const t=todayStr();
+ if(!(c.id in s.graded)){
+  s.graded[c.id]=ok;
+  if(ok){
+   s.ok++;
+   c.box=Math.min(5,c.box+1);
+   c.nextReview=addDays(t,INTERVALS[c.box]);
+   c.history.ok++;
+  }else{
+   s.ng++;
+   c.box=1;
+   c.nextReview=addDays(t,1);
+   c.history.ng++;
+  }
+  save();
+ }
+ if(!ok)s.queue.push(c); /* セッション内で再出題（採点は初回のみ反映） */
+ s.i++;s.flipped=false;render();
+}
+
+/* ---------- カードタブ ---------- */
+function viewCards(){
+ const chips=[['all','すべて']].concat(SUBJECTS.map(function(s){return [s.id,s.name];}));
+ return '<div class="chips">'+chips.map(function(d){return '<button class="chip '+(ui.filter===d[0]?'on':'')+'" data-filter="'+d[0]+'">'+d[1]+'</button>';}).join('')+'</div>'
+ +'<input type="text" id="c-search" placeholder="検索（用語・解説）" value="'+esc(ui.search)+'">'
+ +'<div id="c-list"></div>';
+}
+function cardList(){
+ let list=store.cards.filter(function(c){return ui.filter==='all'||c.subject===ui.filter;});
+ const q=norm(ui.search);
+ if(q)list=list.filter(function(c){return norm(c.term).indexOf(q)>=0||norm(c.definition).indexOf(q)>=0;});
+ if(list.length===0)return '<div class="card muted" style="margin-top:12px">カードがありません</div>';
+ const groups={};
+ for(const c of list){
+  const k=(c.source&&c.source.book)||'（出典なし）';
+  (groups[k]=groups[k]||[]).push(c);
+ }
+ return Object.keys(groups).sort().map(function(book){
+  const items=groups[book].sort(function(a,b){
+   const pa=norm((a.source&&a.source.page)||''),pb=norm((b.source&&b.source.page)||'');
+   if(pa!==pb)return pa.localeCompare(pb,'ja');
+   return norm(a.term).localeCompare(norm(b.term),'ja');
+  });
+  const rows=items.map(function(c){
+   const chip=ui.filter==='all'?'<span class="subj '+c.subject+'">'+(SHORT[c.subject]||'')+'</span> ':'';
+   const pg=(c.source&&c.source.page)?'<div class="muted" style="font-size:11px">'+esc(c.source.page)+'</div>':'';
+   return '<div class="item" data-edit="'+c.id+'">'
+   +'<div style="flex:1;min-width:0"><div class="t">'+esc(c.term)+'</div><div class="d">'+esc(c.definition)+'</div></div>'
+   +'<div style="text-align:right;flex-shrink:0">'+chip+'<span class="badge">箱'+c.box+'</span>'+pg+'</div>'
+   +'</div>';
+  }).join('');
+  return '<div class="grp">'+esc(book)+'（'+items.length+'）</div><div class="card" style="padding:4px 14px">'+rows+'</div>';
+ }).join('');
+}
+function modalHTML(){
+ if(!ui.edit)return '';
+ const c=store.cards.find(function(x){return x.id===ui.edit;});
+ if(!c)return '';
+ return '<div class="modal" id="modal"><div class="panel">'
+ +'<h3 style="margin:2px 0 10px">カード編集</h3>'
+ +'<label class="f">用語</label><input type="text" id="e-term" value="'+esc(c.term)+'">'
+ +'<label class="f">解説</label><textarea id="e-def" style="min-height:110px">'+esc(c.definition)+'</textarea>'
+ +'<div class="row"><div style="flex:1"><label class="f">参考書</label><input type="text" id="e-book" value="'+esc((c.source&&c.source.book)||'')+'"></div>'
+ +'<div style="flex:1"><label class="f">ページ</label><input type="text" id="e-page" value="'+esc((c.source&&c.source.page)||'')+'"></div></div>'
+ +'<div class="muted" style="margin:10px 0">箱'+c.box+' ・ ○'+c.history.ok+' ✕'+c.history.ng+' ・ 次回 '+esc(c.nextReview)+'</div>'
+ +'<div class="row"><button class="btn" id="e-cancel">閉じる</button><button class="btn primary" id="e-save">保存する</button></div>'
+ +'<div style="height:10px"></div>'
+ +'<button class="btn small danger" id="e-del" style="border-color:var(--red)">このカードを削除</button>'
+ +'</div></div>';
+}
+
+/* ---------- 設定タブ ---------- */
+function viewSet(){
+ const s=store.settings;
+ const kb=Math.round(((localStorage.getItem(LS_KEY)||'').length/1024)*10)/10;
+ return '<div class="section-title">接続設定</div>'
+ +'<div class="card">'
+ +'<label class="f">Cloudflare Worker URL</label>'
+ +'<input type="url" id="s-url" value="'+esc(s.workerUrl)+'" placeholder="https://xxxx.workers.dev" autocapitalize="off" autocorrect="off">'
+ +'<label class="f">合言葉（WorkerのACCESS_TOKENと同じ文字列）</label>'
+ +'<input type="text" id="s-token" value="'+esc(s.token)+'" autocapitalize="off" autocorrect="off">'
+ +'<div style="height:12px"></div>'
+ +'<button class="btn primary" id="s-save">保存する</button>'
+ +'</div>'
+ +'<div class="section-title">統計</div>'
+ +'<div class="card">'
+ +'<div class="stat"><span>カード総数</span><b>'+store.cards.length+'枚</b></div>'
+ +'<div class="stat"><span>本日の生成</span><b>'+store.gen.count+' / '+DAILY_CAP+'枚</b></div>'
+ +'<div class="stat"><span>累計生成（課金設計用）</span><b>'+store.gen.total+'枚</b></div>'
+ +'<div class="stat"><span>データ容量</span><b>'+kb+' KB</b></div>'
+ +'</div>'
+ +'<div class="section-title">バックアップ</div>'
+ +'<div class="card">'
+ +'<div class="muted" style="margin-bottom:10px">localStorageは消えることがあります。週1回のバックアップを推奨。</div>'
+ +'<div class="row"><button class="btn" id="b-copy">全データをコピー</button><button class="btn" id="b-tsv">TSVコピー</button></div>'
+ +'<label class="f">復元（バックアップJSONを貼り付け）</label>'
+ +'<textarea id="b-in" placeholder=\'{"version":1,...}\'></textarea>'
+ +'<div class="row" style="margin-top:10px"><button class="btn" id="b-merge">統合する</button><button class="btn" id="b-replace">置き換える</button></div>'
+ +'</div>'
+ +'<div class="card"><button class="btn small danger" id="b-wipe" style="border-color:var(--red)">全データを削除</button></div>'
+ +'<div class="muted" style="text-align:center">CardForge v0.1 ・ 画像は保存されず処理後に破棄されます</div>';
+}
+function restore(replace){
+ const txt=$('#b-in').value.trim();
+ if(!txt){toast('バックアップJSONを貼り付けてください');return;}
+ let d;
+ try{d=JSON.parse(txt);}catch(e){toast('JSONを解析できません');return;}
+ if(!d||!Array.isArray(d.cards)){toast('形式が不正です');return;}
+ if(replace){
+  if(!confirm('現在の全データを置き換えます。よろしいですか？'))return;
+  store=Object.assign(defaults(),d);save();toast('置き換えました');
+ }else{
+  const ids=new Set(store.cards.map(function(c){return c.id;}));
+  let n=0;
+  for(const c of d.cards){
+   if(!c||!c.id||ids.has(c.id))continue;
+   store.cards.push(c);n++;
+  }
+  save();toast(n+'枚を統合しました');
+ }
+ render();
+}
+
+/* ---------- bind ---------- */
+function bindList(){
+ $$('[data-edit]').forEach(function(it){it.onclick=function(){ui.edit=it.dataset.edit;render();};});
+}
+function bind(){
+ const tipx=$('#tip-x');if(tipx)tipx.onclick=function(){store.tipDismissed=true;save();render();};
+ const goset=$('#go-set');if(goset)goset.onclick=function(){setTab('set');};
+ if(ui.tab==='gen'&&!ui.preview){
+  $$('.chip[data-subj]').forEach(function(ch){ch.onclick=function(){ui.subject=ch.dataset.subj;ui.book=store.lastBook[ui.subject]||'';ui.page='';render();};});
+  const gb=$('#g-book');if(gb)gb.oninput=function(e){ui.book=e.target.value;};
+  const gp=$('#g-page');if(gp)gp.oninput=function(e){ui.page=e.target.value;};
+  const fi=$('#g-file');
+  const pick=$('#g-pick');if(pick)pick.onclick=function(){fi.click();};
+  if(fi)fi.onchange=onFiles;
+  $$('[data-rm]').forEach(function(b){b.onclick=function(){const i=Number(b.dataset.rm);URL.revokeObjectURL(ui.files[i].url);ui.files.splice(i,1);render();};});
+  const run=$('#g-run');if(run)run.onclick=generate;
+ }
+ if(ui.tab==='gen'&&ui.preview){
+  $$('[data-sel]').forEach(function(cb){cb.onchange=function(){ui.preview.items[Number(cb.dataset.sel)].sel=cb.checked;$('#p-count').textContent=ui.preview.items.filter(function(i){return i.sel;}).length;};});
+  $$('[data-term]').forEach(function(inp){inp.oninput=function(){ui.preview.items[Number(inp.dataset.term)].term=inp.value;};});
+  $$('[data-def]').forEach(function(ta){ta.oninput=function(){ui.preview.items[Number(ta.dataset.def)].definition=ta.value;};});
+  $('#p-discard').onclick=function(){if(confirm('抽出結果を破棄しますか？')){ui.preview=null;render();}};
+  $('#p-save').onclick=savePreview;
+ }
+ if(ui.tab==='rev'){
+  if(ui.session){
+   const quit=$('#s-quit');if(quit)quit.onclick=function(){ui.session=null;render();};
+   const done=$('#s-done');if(done)done.onclick=function(){ui.session=null;render();};
+   const card=$('#s-card');if(card)card.onclick=function(){ui.session.flipped=!ui.session.flipped;render();};
+   const fl=$('#s-flip');if(fl)fl.onclick=function(){ui.session.flipped=true;render();};
+   const ok=$('#s-ok');if(ok)ok.onclick=function(){grade(true);};
+   const ng=$('#s-ng');if(ng)ng.onclick=function(){grade(false);};
+  }else{
+   $$('[data-start]').forEach(function(b){b.onclick=function(){startSession(b.dataset.start);};});
+   const sa=$('#start-all');if(sa)sa.onclick=function(){startSession(null);};
+  }
+ }
+ if(ui.tab==='cards'){
+  $$('.chip[data-filter]').forEach(function(ch){ch.onclick=function(){ui.filter=ch.dataset.filter;render();};});
+  const se=$('#c-search');
+  if(se)se.oninput=function(e){ui.search=e.target.value;$('#c-list').innerHTML=cardList();bindList();};
+  $('#c-list').innerHTML=cardList();
+  bindList();
+ }
+ if(ui.tab==='set'){
+  $('#s-save').onclick=function(){
+   store.settings.workerUrl=$('#s-url').value.trim().replace(/\/+$/,'');
+   store.settings.token=$('#s-token').value.trim();
+   save();toast('保存しました');
+  };
+  $('#b-copy').onclick=function(){copyText(JSON.stringify(store));};
+  $('#b-tsv').onclick=function(){
+   const rows=store.cards.map(function(c){
+    return [c.term,c.definition,SUBJ[c.subject]||'',(c.source&&c.source.book)||'',(c.source&&c.source.page)||'']
+     .map(function(x){return String(x).replace(/[\t\n\r]/g,' ');}).join('\t');
+   });
+   copyText(rows.join('\n'));
+  };
+  $('#b-merge').onclick=function(){restore(false);};
+  $('#b-replace').onclick=function(){restore(true);};
+  $('#b-wipe').onclick=function(){
+   if(confirm('全データを削除します。よろしいですか？')&&confirm('本当に削除しますか？この操作は戻せません。')){
+    localStorage.removeItem(LS_KEY);
+    store=load();
+    ui.preview=null;ui.session=null;
+    toast('削除しました');render();
+   }
+  };
+ }
+ if(ui.edit){
+  $('#e-cancel').onclick=function(){ui.edit=null;render();};
+  $('#e-save').onclick=function(){
+   const c=store.cards.find(function(x){return x.id===ui.edit;});
+   if(!c)return;
+   c.term=$('#e-term').value.trim();
+   c.definition=$('#e-def').value.trim();
+   c.source={book:$('#e-book').value.trim(),page:$('#e-page').value.trim()};
+   save();ui.edit=null;toast('保存しました');render();
+  };
+  $('#e-del').onclick=function(){
+   if(confirm('このカードを削除しますか？')){
+    store.cards=store.cards.filter(function(x){return x.id!==ui.edit;});
+    save();ui.edit=null;toast('削除しました');render();
+   }
+  };
+  $('#modal').onclick=function(e){if(e.target.id==='modal'){ui.edit=null;render();}};
+ }
+}
+render();
+</script>
+</body>
+</html>
