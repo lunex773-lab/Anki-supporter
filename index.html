@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#F2F1EB">
-<title>CardForge — 共通テスト暗記カード</title>
+<title>CardForge — 学習暗記カード</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@700;900&display=swap" rel="stylesheet">
@@ -54,8 +54,7 @@ label.f{display:block;font-size:12px;font-weight:800;color:var(--muted);margin:1
 .muted{color:var(--muted);font-size:13px}
 .badge{display:inline-block;padding:1px 8px;border:1.2px solid var(--line);border-radius:6px;font-size:11px;font-weight:800}
 .badge.dup{color:var(--red);border-color:var(--red)}
-.subj{display:inline-block;min-width:22px;text-align:center;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:900;color:#fff}
-.subj.info{background:var(--ai)} .subj.civics{background:#7A5A2E} .subj.chem{background:#2E6B4E}
+.subj{display:inline-block;min-width:22px;text-align:center;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:900;color:#fff;background:#7B8093}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1.5px solid var(--line);display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{flex:1;padding:13px 0 11px;background:none;border:none;font-size:13px;font-weight:900;color:var(--muted);position:relative;font-family:inherit;cursor:pointer}
 nav.tabs button.on{color:var(--ink)}
@@ -104,7 +103,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.chip:focus-visi
 </style>
 </head>
 <body>
-<header class="app"><h1>Card<span class="mk">Forge</span></h1><span class="sub">共通テスト暗記カード v0.1</span></header>
+<header class="app"><h1>Card<span class="mk">Forge</span></h1><span class="sub">学習暗記カード v0.3</span></header>
 <main id="view"></main>
 <nav class="tabs" id="tabs"></nav>
 <div id="toast" role="status"></div>
@@ -118,13 +117,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,.chip:focus-visi
    - 日付は全て端末ローカル基準（UTC混在バグの再発防止）
 */
 const LS_KEY='card-forge:v1';
-const SUBJECTS=[
- {id:'info',name:'情報Ⅰ'},
- {id:'civics',name:'公共・政治経済'},
- {id:'chem',name:'化学基礎'}
+const DEFAULT_SUBJECTS=[
+ {id:'info',name:'情報Ⅰ',color:'#2C4E80'},
+ {id:'civics',name:'公共・政治経済',color:'#7A5A2E'},
+ {id:'chem',name:'化学基礎',color:'#2E6B4E'}
 ];
-const SUBJ=Object.fromEntries(SUBJECTS.map(function(s){return [s.id,s.name];}));
-const SHORT={info:'情',civics:'公',chem:'化'};
+const SUBJ_COLORS=['#2C4E80','#7A5A2E','#2E6B4E','#8A3B5C','#5B4A8A','#3E7A7A','#A0522D','#556B2F'];
+const MAX_SUBJECTS=12;
 const INTERVALS={1:1,2:2,3:4,4:8,5:16};
 const DAILY_CAP=30, MAX_BATCH=5;
 
@@ -149,31 +148,43 @@ async function copyText(txt){
 }
 
 /* ---------- store ---------- */
-function defaults(){return{version:1,settings:{workerUrl:'',token:''},cards:[],gen:{date:todayStr(),count:0,total:0},lastSubject:'info',lastBook:{},tipDismissed:false};}
+function defaults(){return{version:3,settings:{workerUrl:'',token:''},cards:[],gen:{date:todayStr(),count:0,total:0},lastSubject:'info',lastBook:{},tipDismissed:false,subjects:DEFAULT_SUBJECTS.map(function(s){return {id:s.id,name:s.name,color:s.color,instruction:''};})};}
 function load(){
  try{
   const r=localStorage.getItem(LS_KEY);
   if(!r)return defaults();
   const d=JSON.parse(r);
   const base=defaults();
-  return Object.assign({},base,d,{
+  const out=Object.assign({},base,d,{
    settings:Object.assign({},base.settings,d.settings||{}),
    gen:Object.assign({},base.gen,d.gen||{}),
    lastBook:d.lastBook||{}
   });
+  if(!Array.isArray(out.subjects))out.subjects=[];
+  out.subjects=out.subjects.filter(function(x){return x&&x.id&&x.name;}).map(function(x){return {id:x.id,name:x.name,color:x.color||'#7B8093',instruction:typeof x.instruction==='string'?x.instruction:''};});
+  if(out.subjects.length===0)out.subjects=base.subjects;
+  out.version=3;
+  return out;
  }catch(e){return defaults();}
 }
 let store=load();
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(store));}catch(e){toast('保存失敗：容量超過の可能性。バックアップを取ってください');}}
 function rollGen(){const t=todayStr();if(store.gen.date!==t){store.gen.date=t;store.gen.count=0;save();}}
 function dueCards(subj){const t=todayStr();return store.cards.filter(function(c){return c.nextReview<=t&&(!subj||c.subject===subj);});}
+function subjects(){return store.subjects;}
+function subjById(id){return store.subjects.find(function(x){return x.id===id;});}
+function subjName(id){const x=subjById(id);return x?x.name:'不明な科目';}
+function subjShort(id){const x=subjById(id);return x?x.name.trim().charAt(0):'?';}
+function subjColor(id){const x=subjById(id);return (x&&x.color)?x.color:'#7B8093';}
+function subjChip(id){return '<span class="subj" style="background:'+subjColor(id)+'">'+esc(subjShort(id))+'</span>';}
 
 /* ---------- ui state ---------- */
-let ui={tab:'gen',subject:store.lastSubject||'info',book:'',page:'',files:[],busy:false,preview:null,session:null,filter:'all',search:'',edit:null};
+let ui={tab:'gen',subject:store.lastSubject||'info',book:'',page:'',files:[],busy:false,preview:null,session:null,filter:'all',search:'',edit:null,sedit:null,connOpen:false};
+if(!subjById(ui.subject))ui.subject=store.subjects[0].id;
 ui.book=store.lastBook[ui.subject]||'';
 
 /* ---------- render ---------- */
-function setTab(t){ui.tab=t;ui.edit=null;render();window.scrollTo(0,0);}
+function setTab(t){ui.tab=t;ui.edit=null;ui.sedit=null;ui.connOpen=false;render();window.scrollTo(0,0);}
 function render(){
  renderTabs();
  const v=$('#view');
@@ -216,7 +227,7 @@ function viewGen(){
  return iosTip()
  +(noUrl?'<div class="card"><b>初期設定が必要です。</b><div class="muted" style="margin:6px 0 10px">設定タブでWorker URLと合言葉を保存してください。</div><button class="btn small" id="go-set">設定を開く</button></div>':'')
  +'<div class="section-title">科目</div>'
- +'<div class="chips">'+SUBJECTS.map(function(s){return '<button class="chip '+(ui.subject===s.id?'on':'')+'" data-subj="'+s.id+'">'+s.name+'</button>';}).join('')+'</div>'
+ +'<div class="chips">'+subjects().map(function(s){return '<button class="chip '+(ui.subject===s.id?'on':'')+'" data-subj="'+s.id+'">'+s.name+'</button>';}).join('')+'</div>'
  +'<div class="card">'
  +'<label class="f">参考書名（任意・出典として保存）</label>'
  +'<input type="text" id="g-book" value="'+esc(ui.book)+'" placeholder="例：情報Ⅰ 標準問題集">'
@@ -228,7 +239,7 @@ function viewGen(){
  +'<div class="thumbs" id="g-thumbs">'+thumbs+'</div>'
  +'<div style="height:12px"></div>'
  +'<button class="btn primary" id="g-run" '+((ui.busy||ui.files.length===0||noUrl)?'disabled':'')+'>'+runLabel+'</button>'
- +'<div class="muted" style="margin-top:10px">本日 '+store.gen.count+'/'+DAILY_CAP+'枚 ・ 累計 '+store.gen.total+'枚 ・ '+esc(SUBJ[ui.subject])+'のカード '+cnt+'枚</div>'
+ +'<div class="muted" style="margin-top:10px">本日 '+store.gen.count+'/'+DAILY_CAP+'枚 ・ 累計 '+store.gen.total+'枚 ・ '+esc(subjName(ui.subject))+'のカード '+cnt+'枚</div>'
  +'<div class="muted" style="margin-top:4px">画像はカード生成後すぐ破棄され、サーバーに保存されません。</div>'
  +'</div>';
 }
@@ -245,7 +256,7 @@ function viewPreview(){
   +'<textarea data-def="'+i+'">'+esc(it.definition)+'</textarea>'
   +'</div>';
  }).join('');
- return '<div class="section-title">抽出結果 — '+esc(SUBJ[p.subject])+' '+p.items.length+'枚</div>'
+ return '<div class="section-title">抽出結果 — '+esc(subjName(p.subject))+' '+p.items.length+'枚</div>'
  +'<div class="card">'
  +'<div class="muted" style="margin-bottom:8px">誤りはここで直してから保存。間違ったカードは無いカードより悪い。</div>'
  +rows
@@ -302,7 +313,7 @@ async function generate(){
   const res=await fetch(s.workerUrl,{
    method:'POST',
    headers:{'Content-Type':'application/json','X-Access-Token':s.token||''},
-   body:JSON.stringify({subject:ui.subject,images:images}),
+   body:JSON.stringify({subject:ui.subject,subjectName:subjName(ui.subject),subjectPrompt:((subjById(ui.subject)||{}).instruction||''),images:images}),
    signal:ctrl.signal
   });
   clearTimeout(tm);
@@ -351,7 +362,7 @@ function savePreview(){
 function viewRev(){
  if(ui.session)return viewSession();
  const t=todayStr();
- const rows=SUBJECTS.map(function(s){
+ const rows=subjects().map(function(s){
   const d=dueCards(s.id).length;
   const all=store.cards.filter(function(c){return c.subject===s.id;}).length;
   const right=d>0?'<button class="btn small ai" data-start="'+s.id+'">復習 '+d+'</button>':'<span class="muted">0</span>';
@@ -385,7 +396,7 @@ function viewSession(){
  const c=s.queue[s.i];
  const src=[(c.source&&c.source.book)||'',(c.source&&c.source.page)||''].filter(Boolean).join('　');
  const front='<div class="face">'
- +'<div class="meta"><span class="subj '+c.subject+'">'+(SHORT[c.subject]||'')+'</span><span class="badge">箱'+c.box+'</span></div>'
+ +'<div class="meta">'+subjChip(c.subject)+'<span class="badge">箱'+c.box+'</span></div>'
  +'<div class="term"><span class="mk">'+esc(c.term)+'</span></div>'
  +'<div class="hint">タップして答えを見る</div>'
  +'</div>';
@@ -428,7 +439,7 @@ function grade(ok){
 
 /* ---------- カードタブ ---------- */
 function viewCards(){
- const chips=[['all','すべて']].concat(SUBJECTS.map(function(s){return [s.id,s.name];}));
+ const chips=[['all','すべて']].concat(subjects().map(function(s){return [s.id,s.name];}));
  return '<div class="chips">'+chips.map(function(d){return '<button class="chip '+(ui.filter===d[0]?'on':'')+'" data-filter="'+d[0]+'">'+d[1]+'</button>';}).join('')+'</div>'
  +'<input type="text" id="c-search" placeholder="検索（用語・解説）" value="'+esc(ui.search)+'">'
  +'<div id="c-list"></div>';
@@ -450,7 +461,7 @@ function cardList(){
    return norm(a.term).localeCompare(norm(b.term),'ja');
   });
   const rows=items.map(function(c){
-   const chip=ui.filter==='all'?'<span class="subj '+c.subject+'">'+(SHORT[c.subject]||'')+'</span> ':'';
+   const chip=ui.filter==='all'?subjChip(c.subject)+' ':'';
    const pg=(c.source&&c.source.page)?'<div class="muted" style="font-size:11px">'+esc(c.source.page)+'</div>':'';
    return '<div class="item" data-edit="'+c.id+'">'
    +'<div style="flex:1;min-width:0"><div class="t">'+esc(c.term)+'</div><div class="d">'+esc(c.definition)+'</div></div>'
@@ -460,7 +471,24 @@ function cardList(){
   return '<div class="grp">'+esc(book)+'（'+items.length+'）</div><div class="card" style="padding:4px 14px">'+rows+'</div>';
  }).join('');
 }
+function subjModalHTML(){
+ const isNew=ui.sedit==='_new';
+ const sj=isNew?null:subjById(ui.sedit);
+ if(!isNew&&!sj)return '';
+ const cnt=isNew?0:store.cards.filter(function(c){return c.subject===ui.sedit;}).length;
+ const delBtn=isNew?'':'<div style="height:10px"></div><button class="btn small danger" id="sj-del" style="border-color:var(--red)">この科目を削除</button>';
+ return '<div class="modal" id="modal"><div class="panel">'
+ +'<h3 style="margin:2px 0 10px">'+(isNew?'科目を追加':'科目を編集')+'</h3>'
+ +'<label class="f">科目名</label><input type="text" id="sj-name" value="'+esc(isNew?'':sj.name)+'" placeholder="例：日本史">'
+ +'<label class="f">AIへの指示（任意・精度向上）</label>'
+ +'<textarea id="sj-inst" placeholder="例：年号・人物・出来事の因果を重視。人名は活躍した時代と業績を1文で。計算問題はカード化しない。">'+esc(isNew?'':(sj.instruction||''))+'</textarea>'
+ +(isNew?'<div class="muted" style="margin:8px 0">この指示と科目名がAIへの指示に使われます。追加科目は指示を書くほど精度が上がります。</div>':'<div class="muted" style="margin:8px 0">カード '+cnt+'枚。この指示と科目名がAIへの指示に使われます。</div>')
+ +'<div class="row" style="margin-top:6px"><button class="btn" id="sj-cancel">閉じる</button><button class="btn primary" id="sj-save">保存する</button></div>'
+ +delBtn
+ +'</div></div>';
+}
 function modalHTML(){
+ if(ui.sedit)return subjModalHTML();
  if(!ui.edit)return '';
  const c=store.cards.find(function(x){return x.id===ui.edit;});
  if(!c)return '';
@@ -481,14 +509,27 @@ function modalHTML(){
 function viewSet(){
  const s=store.settings;
  const kb=Math.round(((localStorage.getItem(LS_KEY)||'').length/1024)*10)/10;
+ const conn=ui.connOpen
+  ?('<label class="f">Cloudflare Worker URL</label>'
+   +'<input type="url" id="s-url" value="'+esc(s.workerUrl)+'" placeholder="https://xxxx.workers.dev" autocapitalize="off" autocorrect="off">'
+   +'<label class="f">合言葉（WorkerのACCESS_TOKENと同じ文字列）</label>'
+   +'<input type="text" id="s-token" value="'+esc(s.token)+'" autocapitalize="off" autocorrect="off">'
+   +'<div style="height:12px"></div>'
+   +'<div class="row"><button class="btn" id="conn-close">キャンセル</button><button class="btn primary" id="s-save">保存する</button></div>')
+  :('<div class="stat"><span>Worker URL</span><b>'+(s.workerUrl?'設定済み':'<span class="danger">未設定</span>')+'</b></div>'
+   +'<div class="stat"><span>合言葉</span><b>'+(s.token?'設定済み':'<span class="danger">未設定</span>')+'</b></div>'
+   +'<div style="height:10px"></div>'
+   +'<button class="btn" id="conn-open">接続設定を開く</button>');
+ const subjRows=subjects().map(function(sj){
+  const cnt=store.cards.filter(function(c){return c.subject===sj.id;}).length;
+  return '<div class="stat"><span>'+subjChip(sj.id)+' '+esc(sj.name)+'<span class="muted">（'+cnt+'枚）</span></span><button class="btn small" data-sedit="'+sj.id+'">変更</button></div>';
+ }).join('');
  return '<div class="section-title">接続設定</div>'
- +'<div class="card">'
- +'<label class="f">Cloudflare Worker URL</label>'
- +'<input type="url" id="s-url" value="'+esc(s.workerUrl)+'" placeholder="https://xxxx.workers.dev" autocapitalize="off" autocorrect="off">'
- +'<label class="f">合言葉（WorkerのACCESS_TOKENと同じ文字列）</label>'
- +'<input type="text" id="s-token" value="'+esc(s.token)+'" autocapitalize="off" autocorrect="off">'
- +'<div style="height:12px"></div>'
- +'<button class="btn primary" id="s-save">保存する</button>'
+ +'<div class="card">'+conn+'</div>'
+ +'<div class="section-title">科目の管理</div>'
+ +'<div class="card">'+subjRows
+ +'<div style="height:10px"></div>'
+ +'<button class="btn" id="sj-add">＋ 科目を追加</button>'
  +'</div>'
  +'<div class="section-title">統計</div>'
  +'<div class="card">'
@@ -506,7 +547,7 @@ function viewSet(){
  +'<div class="row" style="margin-top:10px"><button class="btn" id="b-merge">統合する</button><button class="btn" id="b-replace">置き換える</button></div>'
  +'</div>'
  +'<div class="card"><button class="btn small danger" id="b-wipe" style="border-color:var(--red)">全データを削除</button></div>'
- +'<div class="muted" style="text-align:center">CardForge v0.1 ・ 画像は保存されず処理後に破棄されます</div>';
+ +'<div class="muted" style="text-align:center">CardForge v0.3 ・ 画像は保存されず処理後に破棄されます</div>';
 }
 function restore(replace){
  const txt=$('#b-in').value.trim();
@@ -516,7 +557,12 @@ function restore(replace){
  if(!d||!Array.isArray(d.cards)){toast('形式が不正です');return;}
  if(replace){
   if(!confirm('現在の全データを置き換えます。よろしいですか？'))return;
-  store=Object.assign(defaults(),d);save();toast('置き換えました');
+  store=Object.assign(defaults(),d);
+  if(!Array.isArray(store.subjects))store.subjects=[];
+  store.subjects=store.subjects.filter(function(x){return x&&x.id&&x.name;}).map(function(x){return {id:x.id,name:x.name,color:x.color||'#7B8093',instruction:typeof x.instruction==='string'?x.instruction:''};});
+  if(store.subjects.length===0)store.subjects=defaults().subjects;
+  store.version=3;
+  save();toast('置き換えました');
  }else{
   const ids=new Set(store.cards.map(function(c){return c.id;}));
   let n=0;
@@ -526,6 +572,8 @@ function restore(replace){
   }
   save();toast(n+'枚を統合しました');
  }
+ if(!subjById(ui.subject)){ui.subject=store.subjects[0].id;ui.book=store.lastBook[ui.subject]||'';}
+ if(ui.filter!=='all'&&!subjById(ui.filter))ui.filter='all';
  render();
 }
 
@@ -574,15 +622,24 @@ function bind(){
   bindList();
  }
  if(ui.tab==='set'){
-  $('#s-save').onclick=function(){
+  const co=$('#conn-open');if(co)co.onclick=function(){ui.connOpen=true;render();};
+  const cc=$('#conn-close');if(cc)cc.onclick=function(){ui.connOpen=false;render();};
+  const ss=$('#s-save');
+  if(ss)ss.onclick=function(){
    store.settings.workerUrl=$('#s-url').value.trim().replace(/\/+$/,'');
    store.settings.token=$('#s-token').value.trim();
-   save();toast('保存しました');
+   save();ui.connOpen=false;toast('保存しました');render();
   };
+  const sja=$('#sj-add');
+  if(sja)sja.onclick=function(){
+   if(store.subjects.length>=MAX_SUBJECTS){toast('科目は最大'+MAX_SUBJECTS+'個までです');return;}
+   ui.sedit='_new';render();
+  };
+  $$('[data-sedit]').forEach(function(b){b.onclick=function(){ui.sedit=b.dataset.sedit;render();};});
   $('#b-copy').onclick=function(){copyText(JSON.stringify(store));};
   $('#b-tsv').onclick=function(){
    const rows=store.cards.map(function(c){
-    return [c.term,c.definition,SUBJ[c.subject]||'',(c.source&&c.source.book)||'',(c.source&&c.source.page)||'']
+    return [c.term,c.definition,subjName(c.subject),(c.source&&c.source.book)||'',(c.source&&c.source.page)||'']
      .map(function(x){return String(x).replace(/[\t\n\r]/g,' ');}).join('\t');
    });
    copyText(rows.join('\n'));
@@ -593,12 +650,46 @@ function bind(){
    if(confirm('全データを削除します。よろしいですか？')&&confirm('本当に削除しますか？この操作は戻せません。')){
     localStorage.removeItem(LS_KEY);
     store=load();
-    ui.preview=null;ui.session=null;
+    ui.preview=null;ui.session=null;ui.sedit=null;ui.connOpen=false;
+    ui.subject=store.subjects[0].id;ui.book=store.lastBook[ui.subject]||'';ui.filter='all';
     toast('削除しました');render();
    }
   };
  }
- if(ui.edit){
+ if(ui.sedit){
+  $('#sj-cancel').onclick=function(){ui.sedit=null;render();};
+  $('#sj-save').onclick=function(){
+   const name=$('#sj-name').value.trim();
+   if(!name){toast('科目名を入力してください');return;}
+   if(name.length>20){toast('科目名は20文字以内にしてください');return;}
+   const dupe=store.subjects.some(function(x){return norm(x.name)===norm(name)&&x.id!==ui.sedit;});
+   if(dupe){toast('同じ名前の科目があります');return;}
+   let inst=($('#sj-inst')?$('#sj-inst').value:'').trim();
+   if(inst.length>400)inst=inst.slice(0,400);
+   if(ui.sedit==='_new'){
+    const id='s'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
+    const color=SUBJ_COLORS[store.subjects.length%SUBJ_COLORS.length];
+    store.subjects.push({id:id,name:name,color:color,instruction:inst});
+   }else{
+    const sj=subjById(ui.sedit);
+    if(sj){sj.name=name;sj.instruction=inst;}
+   }
+   save();ui.sedit=null;toast('保存しました');render();
+  };
+  const sjd=$('#sj-del');
+  if(sjd)sjd.onclick=function(){
+   const cnt=store.cards.filter(function(c){return c.subject===ui.sedit;}).length;
+   if(cnt>0){toast('カードが'+cnt+'枚ある科目は削除できません。先にカードを削除してください');return;}
+   if(store.subjects.length<=1){toast('最低1科目は必要です');return;}
+   if(!confirm('この科目を削除しますか？'))return;
+   store.subjects=store.subjects.filter(function(x){return x.id!==ui.sedit;});
+   if(!subjById(ui.subject)){ui.subject=store.subjects[0].id;ui.book=store.lastBook[ui.subject]||'';}
+   if(ui.filter!=='all'&&!subjById(ui.filter))ui.filter='all';
+   save();ui.sedit=null;toast('削除しました');render();
+  };
+  const sm=$('#modal');if(sm)sm.onclick=function(e){if(e.target.id==='modal'){ui.sedit=null;render();}};
+ }
+ if(ui.edit&&!ui.sedit){
   $('#e-cancel').onclick=function(){ui.edit=null;render();};
   $('#e-save').onclick=function(){
    const c=store.cards.find(function(x){return x.id===ui.edit;});
